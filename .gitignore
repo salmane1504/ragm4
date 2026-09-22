@@ -11,8 +11,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Local configuration
+.env
+
 # Datasets
-datasets/
+storage/
 
 # Models
 models/
