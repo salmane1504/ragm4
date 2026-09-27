@@ -274,6 +274,38 @@ Type `exit` or press Ctrl-D to quit. Either way the model is evicted from RAM
 before the process ends — you can confirm with `ollama ps`, which should list
 nothing afterwards.
 
+#### Viewing retrieved citations
+
+By default, only the answer is shown. To see the chunks the model was given as
+context, pass the `--citations` flag:
+
+```bash
+uv run python main.py --citations
+```
+
+After each answer, RAGM4 will print the retrieved chunks with their source file
+and similarity score:
+
+```
+bot > Before college the two main things I worked on, outside of school, were
+writing and programming …
+
+citations >
+  [1] paul_graham_essay.txt (score 0.812)
+      Before college the two main things I worked on, outside of school, were writing …
+  [2] paul_graham_essay.txt (score 0.763)
+      We had a lot of fun writing this, but we were starting to run out of …
+  [3] paul_graham_essay.txt (score 0.721)
+      There was one thing in this lexicography that I didn't think was very …
+  [4] paul_graham_essay.txt (score 0.684)
+      In retrospect the most interesting thing about this was …
+```
+
+The score (0.0 to 1.0) is the cosine similarity between the query embedding and
+each chunk's embedding. Higher scores indicate more relevant matches. The `--citations`
+flag helps debug retrieval quality or understand which parts of your corpus
+influenced the answer.
+
 Other questions that work well on the bundled Paul Graham essay:
 
 - `How did Y Combinator start?`

@@ -3,6 +3,7 @@
 Usage
 -----
     uv run python main.py
+    uv run python main.py --citations   # also print the retrieved chunks
 
 The chat model is read from the `.env` file at the repository root:
 
@@ -21,6 +22,7 @@ Type your question at the `you >` prompt. Type `exit` (or press Ctrl-D) to quit.
 
 from __future__ import annotations
 
+import argparse
 import sys
 
 from llama_index.core import Settings
@@ -40,7 +42,20 @@ def _banner(model: str) -> None:
     print(" Type your question, or 'exit' to quit.\n")
 
 
-def _chat(model: str) -> None:
+def _print_citations(response) -> None:
+    """Print the chunks that were passed to the model as context."""
+    if not response.source_nodes:
+        return
+    print("citations >")
+    for i, node in enumerate(response.source_nodes, start=1):
+        source = node.node.metadata.get("file_name", "unknown")
+        score = f"{node.score:.3f}" if node.score is not None else "n/a"
+        text = " ".join(node.node.get_content().split())
+        print(f"  [{i}] {source} (score {score})")
+        print(f"      {text}\n")
+
+
+def _chat(model: str, show_citations: bool = False) -> None:
     """Run the REPL against an already-served model."""
     # ---- 1. Configure the LlamaIndex global settings --------------------
     print("[main] Loading embedding model …")
@@ -69,16 +84,26 @@ def _chat(model: str) -> None:
 
         response = query_engine.query(question)
         print(f"\nbot > {response}\n")
+        if show_citations:
+            _print_citations(response)
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="RAGM4 local RAG chat")
+    parser.add_argument(
+        "--citations",
+        action="store_true",
+        help="print the retrieved chunks given to the model for each answer",
+    )
+    args = parser.parse_args()
+
     try:
         # Fail fast with a clear message before anything expensive happens.
         model = require_ollama_model()
         # Serve the model for the lifetime of the session; the context manager
         # unloads it (and stops the daemon it started) on the way out.
         with OllamaService() as service:
-            _chat(service.model)
+            _chat(service.model, show_citations=args.citations)
     except (MissingOllamaModelError, OllamaServiceError) as err:
         print(f"\n[error] {err}\n", file=sys.stderr)
         raise SystemExit(1) from err
